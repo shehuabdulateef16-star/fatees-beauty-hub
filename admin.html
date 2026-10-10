@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FATEE'S BEAUTY HUB | Admin Dashboard</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fff5f8;
+  color: #35232b;
+}
+
+header {
+  background: #d63384;
+  color: white;
+  padding: 24px 18px;
+}
+
+header h1 {
+  margin: 0 0 8px;
+  font-size: 23px;
+}
+
+header p {
+  margin: 0;
+}
+
+main {
+  max-width: 1100px;
+  margin: 25px auto;
+  padding: 0 15px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px #0000000d;
+}
+
+.card p {
+  margin: 0 0 10px;
+  color: #785e6a;
+}
+
+.card strong {
+  font-size: 28px;
+  color: #d63384;
+}
+
+.panel {
+  background: white;
+  padding: 18px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+button, select {
+  padding: 11px 14px;
+  border: 1px solid #e5c5d4;
+  border-radius: 7px;
+  background: white;
+  font-size: 14px;
+}
+
+button {
+  background: #d63384;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 850px;
+}
+
+th, td {
+  padding: 13px 10px;
+  text-align: left;
+  border-bottom: 1px solid #f2e4eb;
+  font-size: 13px;
+}
+
+th {
+  background: #fff0f6;
+}
+
+.status {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #fff0c2;
+  font-size: 12px;
+}
+
+.message {
+  margin-top: 16px;
+  color: #785e6a;
+  overflow-wrap: anywhere;
+}
+
+small {
+  display: block;
+  margin-top: 20px;
+  color: #785e6a;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>FATEE'S BEAUTY HUB</h1>
+  <p>Admin Dashboard — Appointment Management</p>
+</header>
+
+<main>
+  <section class="stats">
+    <div class="card">
+      <p>Total Bookings</p>
+      <strong id="total">0</strong>
+    </div>
+
+    <div class="card">
+      <p>Pending</p>
+      <strong id="pending">0</strong>
+    </div>
+
+    <div class="card">
+      <p>Confirmed</p>
+      <strong id="confirmed">0</strong>
+    </div>
+
+    <div class="card">
+      <p>Completed</p>
+      <strong id="completed">0</strong>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Appointments</h2>
+
+    <div class="toolbar">
+      <button id="refresh">Refresh Bookings</button>
+
+      <select id="filter">
+        <option value="all">All bookings</option>
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Service</th>
+            <th>Location</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Status</th>
+          <th>Actions</th>
+          </tr><th>Actions</th>
+        </thead>
+
+        <tbody id="bookings">
+          <tr>
+            <td colspan="7">Loading bookings...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="message" id="message"></p>
+    <small>This dashboard currently reads bookings from your local backend.</small>
+  </section>
+</main>
+
+<script>
+const API = "http://127.0.0.1:3000/bookings";
+
+const table = document.getElementById("bookings");
+const message = document.getElementById("message");
+const filter = document.getElementById("filter");
+
+let allBookings = [];
+
+function safeText(value) {
+  return value == null || value === "" ? "—" : String(value);
+}
+
+function getStatus(booking) {
+  return String(booking.status || "pending").toLowerCase();
+}
+
+function renderBookings() {
+  const selected = filter.value;
+
+  const visible = allBookings.filter(booking =>
+    selected === "all" || getStatus(booking) === selected
+  );
+
+  table.replaceChildren();
+
+  if (visible.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 8;
+    cell.textContent = "No bookings found.";
+    row.appendChild(cell);
+    table.appendChild(row);
+    return;
+  }
+
+  visible.forEach(booking => {
+    const row = document.createElement("tr");
+
+    const values = [
+      booking.full_name || booking.customer_name,
+      booking.phone,
+      booking.service,
+      booking.location,
+      booking.date || booking.appointment_date,
+      booking.time || booking.appointment_time
+    ];
+
+    values.forEach(value => {
+      const cell = document.createElement("td");
+      cell.textContent = safeText(value);
+      row.appendChild(cell);
+    });
+
+    const statusCell = document.createElement("td");
+    const badge = document.createElement("span");
+    badge.className = "status";
+    badge.textContent = getStatus(booking);
+    statusCell.appendChild(badge);
+    row.appendChild(statusCell);
+
+    const actionsCell = document.createElement("td");
+
+    if (getStatus(booking) === "pending") {
+      const confirmButton = document.createElement("button");
+      confirmButton.textContent = "Confirm";
+      confirmButton.style.margin = "4px";
+      confirmButton.onclick = () => updateBooking(booking.id, "confirmed");
+
+      const rejectButton = document.createElement("button");
+      rejectButton.textContent = "Reject";
+      rejectButton.style.margin = "4px";
+      rejectButton.onclick = () => updateBooking(booking.id, "cancelled");
+
+      actionsCell.append(confirmButton, rejectButton);
+    } else {
+      actionsCell.textContent = "—";
+    }
+
+    row.appendChild(actionsCell);
+    table.appendChild(row);
+  });
+}
+
+async function updateBooking(id, status) {
+  if (!id) {
+    alert("This booking has no ID.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:3000/update-booking/" + encodeURIComponent(id),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Update failed");
+    }
+
+    message.textContent = "Booking " + status + " successfully.";
+    await loadBookings();
+  } catch (error) {
+    message.textContent = "Could not update booking: " + error.message;
+  }
+}
+
+async function loadBookings() {
+  message.textContent = "Connecting to the booking server...";
+  table.innerHTML = "";
+
+  try {
+    const response = await fetch(API);
+
+    if (!response.ok) {
+      throw new Error("Server returned " + response.status);
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error("Unexpected booking data format");
+    }
+
+    allBookings = data;
+
+    document.getElementById("total").textContent = data.length;
+    document.getElementById("pending").textContent =
+      data.filter(b => getStatus(b) === "pending").length;
+    document.getElementById("confirmed").textContent =
+      data.filter(b => getStatus(b) === "confirmed").length;
+    document.getElementById("completed").textContent =
+      data.filter(b => getStatus(b) === "completed").length;
+
+    renderBookings();
+    message.textContent = "Bookings loaded successfully.";
+  } catch (error) {
+    allBookings = [];
+    renderBookings();
+    message.textContent =
+      "Could not connect. Make sure your Node booking server is running in Termux. " +
+      error.message;
+  }
+}
+
+document.getElementById("refresh").addEventListener("click", loadBookings);
+filter.addEventListener("change", renderBookings);
+
+loadBookings();
+</script>
+
+</body>
+</html>
