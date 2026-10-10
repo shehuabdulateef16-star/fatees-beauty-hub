@@ -222,7 +222,7 @@ function renderBookings() {
   if (!visible.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 9;
+    cell.colSpan = 10;
     cell.textContent = "No bookings found.";
     row.appendChild(cell);
     table.appendChild(row);
@@ -234,7 +234,9 @@ function renderBookings() {
     const values = [
       booking.full_name, booking.phone, booking.email,
       booking.service, booking.location, booking.appointment_date,
-      booking.appointment_time, statusOf(booking)
+      booking.appointment_time,
+booking.message || "No message",
+statusOf(booking)
     ];
 
     values.forEach(value => {
