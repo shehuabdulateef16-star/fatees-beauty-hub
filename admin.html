@@ -1,14 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FATEE'S BEAUTY HUB | Admin Dashboard</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #fff5f8;
+      color: #38202b;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 20px auto;
+    }
+    h1 { color: #c2185b; }
+    .panel {
+      background: white;
+      padding: 24px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 3px 15px #00000010;
+    }
+    input, select, button {
+      padding: 12px;
+      margin: 5px 0;
+      border: 1px solid #e5b5c8;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+    input { width: 100%; }
+    button {
+      background: #c2185b;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { background: #940044; }
+    .hidden { display: none !important; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+    }
+    .stat {
+      background: #fff0f5;
+      padding: 18px;
+      border-radius: 8px;
+    }
+    .stat strong {
+      display: block;
+      font-size: 26px;
+      color: #c2185b;
+      margin-top: 8px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      min-width: 850px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #f0dce4;
+    }
+    th { background: #c2185b; color: white; }
+    td button { margin-right: 4px; }
+    #message { overflow-wrap: anywhere; }
+    .error { color: #b00020; }
+    .success { color: #16743a; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>FATEE'S BEAUTY HUB</h1>
+  <p>Appointment Management Dashboard</p>
+
+  <section id="login" class="panel">
+    <h2>Admin Login</h2>
+    <p>Enter your admin key to manage appointments.</p>
+    <form id="loginForm">
+      <input id="password" type="password" placeholder="Admin key"
+        autocomplete="current-password" required>
+      <button type="submit">Login</button>
+    </form>
+    <p id="loginMessage" role="status"></p>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="panel stats">
+      <div class="stat">Total Bookings<strong id="total">0</strong></div>
+      <div class="stat">Pending<strong id="pending">0</strong></div>
+      <div class="stat">Confirmed<strong id="confirmed">0</strong></div>
+      <div class="stat">Completed<strong id="completed">0</strong></div>
+    </div>
+
+    <div class="panel">
+      <button id="refresh" type="button">Refresh Bookings</button>
+      <button id="logout" type="button">Logout</button>
+      <label for="filter">Filter bookings:</label>
+      <select id="filter">
+        <option value="all">All</option>
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <p id="message" role="status"></p>
+    </div>
+
+    <div class="panel table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Service</th>
+            <th>Location</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bookings"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
 <script>
 const API = "https://fatees-beauty-backend.onrender.com";
-
 let adminKey = "";
 let allBookings = [];
 
-const loginSection = document.getElementById("login");
-const dashboard = document.getElementById("dashboard");
-const message = document.getElementById("message");
-const table = document.getElementById("bookings");
-const filter = document.getElementById("filter");
+const $ = id => document.getElementById(id);
+const loginSection = $("login");
+const dashboard = $("dashboard");
+
+function showLoginMessage(text, error = true) {
+  $("loginMessage").textContent = text;
+  $("loginMessage").className = error ? "error" : "success";
+}
 
 async function apiFetch(path, options = {}) {
   const response = await fetch(API + path, {
@@ -22,114 +161,61 @@ async function apiFetch(path, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || "Request failed: " + response.status);
+    throw new Error(data.message || "Request failed (" + response.status + ")");
   }
 
   return data;
 }
 
-function statusOf(booking) {
-  return String(booking.status || "pending").toLowerCase();
-}
-
-document.getElementById("loginForm").addEventListener("submit", async event => {
+$("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
-
-  adminKey = document.getElementById("password").value.trim();
+  adminKey = $("password").value.trim();
 
   if (!adminKey) {
-    message.textContent = "Enter your admin key.";
+    showLoginMessage("Please enter your admin key.");
     return;
   }
 
-  try {
-    await loadBookings();(
-<script>
-const API = "https://fatees-beauty-backend.onrender.com";
-
-let adminKey = "";
-let allBookings = [];
-
-const loginSection = document.getElementById("login");
-const dashboard = document.getElementById("dashboard");
-const message = document.getElementById("message");
-const table = document.getElementById("bookings");
-const filter = document.getElementById("filter");
-
-async function apiFetch(path, options = {}) {
-  const response = await fetch(API + path, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      "X-Admin-Key": adminKey
-    }
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.message || "Request failed: " + response.status);
-  }
-
-  return data;
-}
-
-function statusOf(booking) {
-  return String(booking.status || "pending").toLowerCase();
-}
-
-document.getElementById("loginForm").addEventListener("submit", async event => {
-  event.preventDefault();
-
-  adminKey = document.getElementById("password").value.trim();
-
-  if (!adminKey) {
-    message.textContent = "Enter your admin key.";
-    return;
-  }
+  showLoginMessage("Connecting to booking system...", false);
 
   try {
     await loadBookings();
-
-    if (allBookings === null) {
-      return;
-    }
-
     loginSection.classList.add("hidden");
     dashboard.classList.remove("hidden");
-    document.getElementById("password").value = "";
+    $("password").value = "";
   } catch (error) {
-    message.textContent = "Login failed: " + error.message;
     adminKey = "";
+    showLoginMessage("Login failed: " + error.message);
   }
 });
 
+function statusOf(booking) {
+  return String(booking.status || "pending").toLowerCase();
+}
+
 async function loadBookings() {
-  message.textContent = "Loading bookings...";
-
+  $("message").textContent = "Loading bookings...";
   const data = await apiFetch("/bookings");
-
   allBookings = Array.isArray(data) ? data : [];
 
-  document.getElementById("total").textContent = allBookings.length;
-  document.getElementById("pending").textContent =
+  $("total").textContent = allBookings.length;
+  $("pending").textContent =
     allBookings.filter(b => statusOf(b) === "pending").length;
-  document.getElementById("confirmed").textContent =
+  $("confirmed").textContent =
     allBookings.filter(b => statusOf(b) === "confirmed").length;
-  document.getElementById("completed").textContent =
+  $("completed").textContent =
     allBookings.filter(b => statusOf(b) === "completed").length;
 
   renderBookings();
-  message.textContent = "Bookings loaded successfully.";
+  $("message").textContent = "Bookings loaded successfully.";
 }
 
 function renderBookings() {
-  const selected = filter.value;
-
+  const selected = $("filter").value;
   const visible = allBookings.filter(b =>
     selected === "all" || statusOf(b) === selected
   );
-
+  const table = $("bookings");
   table.replaceChildren();
 
   if (!visible.length) {
@@ -144,16 +230,10 @@ function renderBookings() {
 
   visible.forEach(booking => {
     const row = document.createElement("tr");
-
     const values = [
-      booking.full_name,
-      booking.phone,
-      booking.email,
-      booking.service,
-      booking.location,
-      booking.appointment_date,
-      booking.appointment_time,
-      statusOf(booking)
+      booking.full_name, booking.phone, booking.email,
+      booking.service, booking.location, booking.appointment_date,
+      booking.appointment_time, statusOf(booking)
     ];
 
     values.forEach(value => {
@@ -163,22 +243,16 @@ function renderBookings() {
     });
 
     const actions = document.createElement("td");
+    const status = statusOf(booking);
 
-    if (statusOf(booking) === "pending") {
-      const confirm = document.createElement("button");
-      confirm.textContent = "Confirm";
-      confirm.onclick = () => updateBooking(booking.id, "confirmed");
-
-      const cancel = document.createElement("button");
-      cancel.textContent = "Cancel";
-      cancel.onclick = () => updateBooking(booking.id, "cancelled");
-
-      actions.append(confirm, cancel);
-    } else if (statusOf(booking) === "confirmed") {
-      const complete = document.createElement("button");
-      complete.textContent = "Complete";
-      complete.onclick = () => updateBooking(booking.id, "completed");
-      actions.appendChild(complete);
+    if (status === "pending") {
+      actions.appendChild(makeButton("Confirm", () =>
+        updateBooking(booking.id, "confirmed")));
+      actions.appendChild(makeButton("Cancel", () =>
+        updateBooking(booking.id, "cancelled")));
+    } else if (status === "confirmed") {
+      actions.appendChild(makeButton("Complete", () =>
+        updateBooking(booking.id, "completed")));
     } else {
       actions.textContent = "—";
     }
@@ -188,37 +262,48 @@ function renderBookings() {
   });
 }
 
+function makeButton(label, action) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.addEventListener("click", action);
+  return button;
+}
+
 async function updateBooking(id, status) {
+  $("message").textContent = "Updating booking...";
   try {
     await apiFetch("/update-booking/" + encodeURIComponent(id), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status })
     });
-
     await loadBookings();
-    message.textContent = "Booking updated successfully.";
+    $("message").textContent = "Booking updated successfully.";
   } catch (error) {
-    message.textContent = "Update failed: " + error.message;
+    $("message").textContent = "Update failed: " + error.message;
   }
 }
 
-document.getElementById("refresh").addEventListener("click", async () => {
+$("refresh").addEventListener("click", async () => {
   try {
     await loadBookings();
   } catch (error) {
-    message.textContent = "Could not refresh: " + error.message;
+    $("message").textContent = "Refresh failed: " + error.message;
   }
 });
 
-document.getElementById("logout").addEventListener("click", () => {
+$("logout").addEventListener("click", () => {
   adminKey = "";
   allBookings = [];
   dashboard.classList.add("hidden");
   loginSection.classList.remove("hidden");
-  message.textContent = "";
-  table.replaceChildren();
+  $("message").textContent = "";
+  $("bookings").replaceChildren();
+  showLoginMessage("");
 });
 
-filter.addEventListener("change", renderBookings);
+$("filter").addEventListener("change", renderBookings);
 </script>
+</body>
+</html>
