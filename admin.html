@@ -1,4 +1,49 @@
-(
+<script>
+const API = "https://fatees-beauty-backend.onrender.com";
+
+let adminKey = "";
+let allBookings = [];
+
+const loginSection = document.getElementById("login");
+const dashboard = document.getElementById("dashboard");
+const message = document.getElementById("message");
+const table = document.getElementById("bookings");
+const filter = document.getElementById("filter");
+
+async function apiFetch(path, options = {}) {
+  const response = await fetch(API + path, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      "X-Admin-Key": adminKey
+    }
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "Request failed: " + response.status);
+  }
+
+  return data;
+}
+
+function statusOf(booking) {
+  return String(booking.status || "pending").toLowerCase();
+}
+
+document.getElementById("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  adminKey = document.getElementById("password").value.trim();
+
+  if (!adminKey) {
+    message.textContent = "Enter your admin key.";
+    return;
+  }
+
+  try {
+    await loadBookings();(
 <script>
 const API = "https://fatees-beauty-backend.onrender.com";
 
